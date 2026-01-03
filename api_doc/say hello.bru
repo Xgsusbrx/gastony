@@ -1,0 +1,22 @@
+meta {
+  name: say hello
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://127.0.0.1:8000/users/say-hello/
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    name: "javier mora gil"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
