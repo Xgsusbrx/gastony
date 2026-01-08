@@ -21,11 +21,15 @@ class OcrViewSet(viewsets.ModelViewSet):
     serializer_class = OcrSerializer
 
     @action(methods=['post'], detail=False, url_path='image-to-text', permission_classes=[permissions.AllowAny])
+
     def image_to_text(self, request):
         serializer = OcrSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         text=ocr(serializer.validated_data.get('image'))
+        Transaction.objects.create(notes=text,amount=0)
         
-
+        
         data={"texto_de_la_imagen":text}
         return Response(data)
+    
+    

@@ -22,6 +22,8 @@ from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from users.views import UserViewSet
 from accounting.views import OcrViewSet
+
+
 schema_view = get_schema_view(
    openapi.Info(
       title="Snippets API",
