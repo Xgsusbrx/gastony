@@ -1,0 +1,26 @@
+meta {
+  name: registrar gasto desde un mensaje
+  type: http
+  seq: 9
+}
+
+post {
+  url: http://127.0.0.1:8000/accounting/from-text/
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "message": "hola gastony acabo de gastar 30000 pesos en un trava"
+  }
+}
+
+body:multipart-form {
+  image: @file(C:\Users\Usuario\Downloads\WhatsApp Image 2026-01-12 at 2.49.14 PM.jpeg)
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

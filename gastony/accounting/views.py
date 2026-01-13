@@ -1,18 +1,19 @@
-# Create your views here.
+# importaciones 
 
 from rest_framework import permissions, viewsets
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from .models import Transaction
-from .serializers import OcrSerializer 
+from .serializers import OcrSerializer, TransactionSerializer
 from .utils import ocr
 import requests 
+from rest_framework import status
+from .services import from_text_to_json
 
 
 
 
-
-# Create your views here.
+# logica 
 
 
 
@@ -23,64 +24,38 @@ class OcrViewSet(viewsets.ModelViewSet):
 
     serializer_class = OcrSerializer
 
+    def get_serializer_class(self):
+        if self.action == 'register_from_text':
+            return []
+        return super().get_serializer_class()
+    
+    # metodo que ejecuta la funcion de leer la imagen 
     @action(methods=['post'], detail=False, url_path='image-to-text', permission_classes=[permissions.AllowAny])
-
     def image_to_text(self, request):
         serializer = OcrSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        # llama la funcion ocr que se encarga de procesar la imagen 
         text=ocr(serializer.validated_data.get('image'))
-        text_test="Hola acabo de gastar 5000 pesos en un cafe"
-        body={
-            "model": "gemma3",
-            "prompt": f"A partir del siguiente texto extraído por OCR devuélvelo ordenado y estructurado en formato JSON. Devuelve SOLO JSON válido, sin texto adicional solo con estos campos: - nombre    - fecha- monto - concepto    Texto OCR: {text_test}",
-            "stream": False
-             }
-        resolve=requests.post("http://localhost:11434/api/generate",json=body)
-        import json
-        import re
-        
-        test=json.loads(resolve.text)
-        result=test["response"]
-        print(test["response"])
-        coincide=re.search(r"```json\s*(\{\s*.*?\s*\})\s*```",result,re.DOTALL)
-
-        if coincide:
-            json_srt= coincide.group(1)
-            try:
-                data = json.loads(json_srt)
-                print(data)
-                print("Nombre del primer elemento")
-            except json.JSONDecodeError as e:
-                print("Error parseando JSON ",e)
-        else:
-            print("No se encontro JSON")            
-        
-
-    #     formateado = ollama(f"""
-    # A partir del siguiente texto extraído por OCR,
-    # devuélvelo ordenado y estructurado en formato JSON.
-
-    # Devuelve SOLO JSON válido, sin texto adicional.
-
-    # Campos sugeridos:
-    # - nombre
-    # - fecha
-    # - monto
-    # - concepto
-
-    # Texto OCR:
-    # {text}
-    # """)
-        
-        import decimal
-        concepto=data.get("concepto") 
-        monto=data.get("monto")
-        monto=decimal.Decimal(monto)
-        
-        Transaction.objects.create(notes=concepto,amount=monto)
-
-        
-        # data={"tu resumen es ": text,"resolve":test["response"]}
-        return Response(data)
+        if len(text) < 10:
+            return Response(data={
+                "msg": "imagen invalida o con mala definicion"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        # llamada a la ia con el texto extraido de la imagen 
+        resolve = from_text_to_json(text) 
+        # logica que se encarga de guardar en la DB lo que genera 
+        transaction = Transaction.objects.create(
+            notes=resolve.get("concepto"),
+            amount=resolve.get("monto")
+        )
+   
+        data={"raw": text,"transaction": TransactionSerializer(transaction).data }
+        return Response(data, status=status.HTTP_200_OK)
     
-    
+    # metodo que se encarga de analizar el texto a travez de un mensaje 
+    @action(methods=['post'], detail=False, url_path='from-text', permission_classes=[permissions.AllowAny])
+    def register_from_text(self, request):
+        message_from_whatsapp = request.data.get('message')
+        result = from_text_to_json(message_from_whatsapp)
+        return Response({
+            "result": result
+        })
