@@ -9,6 +9,20 @@ https://docs.djangoproject.com/en/6.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
+from decouple import config
+
+
+import os
+
+SECRET_KEY = config('SECRET_KEY')
+
+DEBUG = config('DEBUG', default=False, cast=bool)
+
+TWILIO_ACCOUNT_SID = config('TWILIO_ACCOUNT_SID')
+TWILIO_AUTH_TOKEN = config('TWILIO_AUTH_TOKEN')
+
+
+
 
 from pathlib import Path
 
@@ -25,7 +39,7 @@ SECRET_KEY = 'django-insecure-qwm$m#2ahbvp5*9nq-@z7(s6l1q316gqe60tpal&e5y701$3!2
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['kyung-exacting-hwa.ngrok-free.dev']
 
 
 # Application definition

@@ -1,3 +1,15 @@
-venv
-__pycache__
+# Python
+__pycache__/
+*.py[cod]
+
+# Env
 .env
+.env.*
+
+# Django
+*.sqlite3
+media/
+staticfiles/
+# entorno 
+venv
+
