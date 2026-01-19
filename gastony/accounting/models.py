@@ -28,20 +28,23 @@ class Transaction(models.Model):
     category = models.ForeignKey(
         Category,
         on_delete=models.CASCADE,
-        related_name='categories'
+        related_name='categories',null=True,blank=True
     )
     
     
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='transactions'
+        related_name='transactions',
+        null=True,
+        blank=True
+
     )
 
-    amount=models.DecimalField(null=False,decimal_places=2,max_digits=100)
+    amount=models.DecimalField(null=True,decimal_places=2,max_digits=100,blank=True)
     notes=models.TextField(null=True, blank=True)
-    date=models.DateTimeField(null=False)
-    currency=models.CharField(null=False, choices=CurrenciesChoices)
-    type=models.CharField(null=False, choices=TransactionType)
+    # date=models.DateTimeField(null=False)
+    currency=models.CharField(null=True,blank=True, choices=CurrenciesChoices)
+    type=models.CharField(null=False, choices=TransactionType,default=TransactionType.IN)
 
 

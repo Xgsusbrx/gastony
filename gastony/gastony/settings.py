@@ -39,7 +39,7 @@ SECRET_KEY = 'django-insecure-qwm$m#2ahbvp5*9nq-@z7(s6l1q316gqe60tpal&e5y701$3!2
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['kyung-exacting-hwa.ngrok-free.dev']
+ALLOWED_HOSTS = ['kyung-exacting-hwa.ngrok-free.dev','localhost']
 
 
 # Application definition
@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'users',
     'drf_yasg',
     'accounting',
+    'django_extensions',
     ]
 
 MIDDLEWARE = [

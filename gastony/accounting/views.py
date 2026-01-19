@@ -12,7 +12,7 @@ from .services import from_text_to_json
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
-
+from users.models import User
 
 from twilio.rest import Client
 
@@ -60,9 +60,19 @@ class OcrViewSet(viewsets.ModelViewSet):
                 "msg": "imagen invalida o con mala definicion"
             }, status=status.HTTP_400_BAD_REQUEST)
         # llamada a la ia con el texto extraido de la imagen 
-        resolve = from_text_to_json(text) 
+        resolve = from_text_to_json(text)
+
+        # inventar usuario 
+        usuario = User.objects.all().last
+        print(usuario)
+
+
         # logica que se encarga de guardar en la DB lo que genera 
+
+        
         transaction = Transaction.objects.create(
+
+            user=usuario,
             notes=resolve.get("concepto"),
             amount=resolve.get("monto")
         )
@@ -81,16 +91,30 @@ class OcrViewSet(viewsets.ModelViewSet):
     # metodo o endpoint que se encarga de recibir un texto y lo manda a la ia 
     @action(methods=['post'], detail=False,url_path='whatsapp', permission_classes=[])
     def ws_hook(self, request):
-        print(request.data.get('Body'))
-        print(request.data)
+        # print(request.data.get('Body'))
+        # print(request.data)
         resolve = from_text_to_json(request.data.get('Body')) 
         print(resolve)
 
-        body=f'hola ya registre tu gasto de {resolve.get('monto')}'
+        body=f'Hola ya registre tu gasto de {resolve.get('monto')} por concepto de {resolve.get('concepto')}'
         numero=request.data.get('From') 
         self.send_message(numero=numero,body=body, from_=numero)
+
+        # inventamos usuario 
+        usuario = User.objects.all().last
+        print(usuario)
+
+        # guardar en la db el los campos 
+        transaction = Transaction.objects.create(
+            user=usuario(),
+            notes=resolve.get("concepto"),
+            amount=resolve.get("monto")
+        )
+   
+        data={"transaction": TransactionSerializer(transaction).data }
+        return Response(data, status=status.HTTP_200_OK)
         
-        return Response('hola esto es una prueba de que funciona ')
+        # return Response('hola esto es una prueba de que funciona ')
     
     def send_message(self,body,numero,from_): 
         # aqui se envia el mensaje 
@@ -106,6 +130,8 @@ class OcrViewSet(viewsets.ModelViewSet):
         print(message.sid)
         print(body)
         print(numero)
+
+
 
 #         'From': ['whatsapp:+5491172373115'],     # 👤 USUARIO
 # 'To':   ['whatsapp:+14155238886'],       # 🤖 TWILIO (sandbox)
