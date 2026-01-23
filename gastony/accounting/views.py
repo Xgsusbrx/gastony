@@ -29,19 +29,19 @@ auth_token = settings.TWILIO_AUTH_TOKEN
 
 
  #clase general que hace todo 
-class OcrViewSet(viewsets.ModelViewSet): 
+class TransactionViewSet(viewsets.ModelViewSet): 
     # configuracion del viewset
     # la base donde trabaja el viewset osea el modelo Transaction
     queryset=Transaction.objects.all()
     # permisos  
-    permission_classes=[permissions.AllowAny]
+    permission_classes=[permissions.IsAuthenticated]
 
 
-    serializer_class = OcrSerializer
+    serializer_class = TransactionSerializer
 
     def get_serializer_class(self):
         if self.action == 'register_from_text':
-            return []
+            return TransactionSerializer
         return super().get_serializer_class()
     
     # esto crea el endpoint 
@@ -63,7 +63,7 @@ class OcrViewSet(viewsets.ModelViewSet):
         resolve = from_text_to_json(text)
 
         # inventar usuario 
-        usuario = User.objects.all().last
+        usuario = User.objects.last()
         print(usuario)
 
 
@@ -96,7 +96,7 @@ class OcrViewSet(viewsets.ModelViewSet):
         resolve = from_text_to_json(request.data.get('Body')) 
         print(resolve)
 
-        body=f'Hola ya registre tu gasto de {resolve.get('monto')} por concepto de {resolve.get('concepto')}'
+        body=f"Hola ya registre tu gasto de {resolve.get('monto')} por concepto de {resolve.get('concepto')}"
         numero=request.data.get('From') 
         self.send_message(numero=numero,body=body, from_=numero)
 
@@ -104,7 +104,7 @@ class OcrViewSet(viewsets.ModelViewSet):
         usuario = User.objects.all().last
         print(usuario)
 
-        # guardar en la db el los campos 
+        # guarda los datos en la db 
         transaction = Transaction.objects.create(
             user=usuario(),
             notes=resolve.get("concepto"),
@@ -130,9 +130,3 @@ class OcrViewSet(viewsets.ModelViewSet):
         print(message.sid)
         print(body)
         print(numero)
-
-
-
-#         'From': ['whatsapp:+5491172373115'],     # 👤 USUARIO
-# 'To':   ['whatsapp:+14155238886'],       # 🤖 TWILIO (sandbox)
-

@@ -26,7 +26,7 @@ export default function LoginGastony() {
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
-    setLoading(true);
+    setLoading(true); 
     // aqui luego conectas con tu endpoint de Django
     const base_Url = "http://localhost:8000";
 
@@ -36,10 +36,13 @@ export default function LoginGastony() {
         password,
       });
       console.log(resp);
-    //   comando que guarda el token que viene del backend en la sesion local 
-      window.sessionStorage.setItem('token',resp.data.token)
 
-    //   esta es la reddireccion una vez se comprueba el login
+    //   comando que guarda el token que viene del backend en la sesion local 
+      const mitoken = resp.data.token
+      window.sessionStorage.setItem('token',mitoken)
+      console.log(mitoken)
+
+    //   esta es la redireccion una vez se comprueba el login
       window.location.href='/app/home'
     } catch { window.alert('Algo salio mal')
     } finally {

@@ -21,7 +21,7 @@ from rest_framework.authtoken.views import ObtainAuthToken
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from users.views import UserViewSet
-from accounting.views import OcrViewSet
+from accounting.views import TransactionViewSet
 
 
 
@@ -39,7 +39,7 @@ schema_view = get_schema_view(
 )
 router = routers.DefaultRouter()
 router.register(r"users",UserViewSet)
-router.register(r"accounting",OcrViewSet)
+router.register(r"transactions",TransactionViewSet)
 urlpatterns = [
    path('swagger.<format>/', schema_view.without_ui(cache_timeout=0), name='schema-json'),
    path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
