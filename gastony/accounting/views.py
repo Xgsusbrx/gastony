@@ -10,9 +10,9 @@ import requests
 from rest_framework import status
 from .services import from_text_to_json
 from rest_framework.views import APIView
-from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from users.models import User
+from django.db.models import Sum
 
 from twilio.rest import Client
 
@@ -99,14 +99,14 @@ class TransactionViewSet(viewsets.ModelViewSet):
         body=f"Hola ya registre tu gasto de {resolve.get('monto')} por concepto de {resolve.get('concepto')}"
         numero=request.data.get('From') 
         self.send_message(numero=numero,body=body, from_=numero)
-
+ 
         # inventamos usuario 
         usuario = User.objects.all().last
         print(usuario)
 
         # guarda los datos en la db 
         transaction = Transaction.objects.create(
-            user=usuario(),
+            user=usuario,
             notes=resolve.get("concepto"),
             amount=resolve.get("monto")
         )
@@ -114,7 +114,8 @@ class TransactionViewSet(viewsets.ModelViewSet):
         data={"transaction": TransactionSerializer(transaction).data }
         return Response(data, status=status.HTTP_200_OK)
         
-        # return Response('hola esto es una prueba de que funciona ')
+       
+
     
     def send_message(self,body,numero,from_): 
         # aqui se envia el mensaje 
@@ -124,9 +125,21 @@ class TransactionViewSet(viewsets.ModelViewSet):
         message = client.messages.create(
             body=body,
             to='whatsapp:+5491172373115',
-            from_='whatsapp:+14155238886'   # tu número con código país
+            from_='whatsapp:+14155238886',  # tu número con código país
         )
 
         print(message.sid)
         print(body)
         print(numero)
+
+ # endpoint para mostrar el balance 
+    @action(methods=['get'], detail=False,url_path='balance', permission_classes=[])
+    def balance(self, request):
+        data = self.queryset.aggregate(
+            total= Sum('amount')
+        )
+        
+        return Response({
+            "balance": data['total'] or 0            
+        })
+       
