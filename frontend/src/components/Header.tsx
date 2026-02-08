@@ -16,15 +16,6 @@ export default function Header() {
 				>
 					<Menu size={24} />
 				</button>
-				<h1 className="ml-4 text-xl font-semibold">
-					<NavLink to="/">
-						<img
-							src="/tanstack-word-logo-white.svg"
-							alt="TanStack Logo"
-							className="h-10"
-						/>
-					</NavLink>
-				</h1>
 			</header>
 
 			<aside
@@ -45,7 +36,7 @@ export default function Header() {
 
 				<nav className="flex-1 p-4 overflow-y-auto">
 					<NavLink
-						to="/"
+						to="/app/home"
 						onClick={() => setIsOpen(false)}
 						className={({ isActive }) =>
 							isActive

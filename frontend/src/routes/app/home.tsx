@@ -1,4 +1,4 @@
-import axios from "axios";
+import { apiClient } from '@/api'
 import { useEffect, useState } from "react";
 
 export interface TransactionResponse {
@@ -19,22 +19,25 @@ export interface Result {
 }
 
 export default function HomePage() {
-	const [loding, setLoading] = useState(true);
+  const [loding, setLoading] = useState(true);
+  const [error, setError] = useState<boolean>();
+	const [errorMessage, setErrorMessage] = useState<string>();
 	const [data, setData] = useState<TransactionResponse>();
 	useEffect(() => {
 		const apiCall = async () => {
-			const url = "http://localhost:8000";
 			const token = window.sessionStorage.getItem("token");
 			try {
 				setLoading(true);
-				const resp = await axios.get<TransactionResponse>(
-					`${url}/transactions/`,
+				const resp = await apiClient.get<TransactionResponse>(
+					`/transactions/`,
 					{ headers: { Authorization: `Token ${token}` } },
 				);
 				setData(resp.data);
 				console.log(resp.data);
 			} catch {
-				window.alert("Algo salio mal");
+        window.alert("Algo salio mal");
+        setErrorMessage("Algo salio mal");
+        setError(true);
 			} finally {
 				setLoading(false);
 			}
@@ -44,10 +47,13 @@ export default function HomePage() {
 	}, []);
 
 	// imprimir en consola el resultado
+	//
+	if (error) {
+		return <div>Error: {errorMessage}</div>;
+	}
 
 	return (
 		<>
-			{" "}
 			{loding ? (
 				"cargando"
 			) : (
