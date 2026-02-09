@@ -2,7 +2,8 @@ import requests
 import json
 import decimal
 import re
-
+import google.generativeai as genai
+from django.conf import settings
 
 def generate_prompt(text):
     return f"""Eres un sistema automático de extracción de datos financieros.
@@ -23,33 +24,73 @@ def generate_prompt(text):
     """
 
 
-def from_text_to_json(text):
-    # print(generate_prompt(text))
-    body={
-        "model": "gemma3",
-        "prompt": generate_prompt(text),
-        "stream": False
-    }
-    resolve = requests.post("http://localhost:11434/api/generate",json=body)
-    ai_json=json.loads(resolve.text)
-    response =ai_json["response"]
-    coincide=re.search(r"```json\s*(\{\s*.*?\s*\})\s*```",response,re.DOTALL)
 
-    if coincide:
-        json_srt= coincide.group(1)
-        try:
-            data = json.loads(json_srt)
-            print(data)
-            return {
-                "concepto": data.get('concepto'),
-                "nombre": data.get("nombre"),
-                "monto": decimal.Decimal(data.get("monto"))  
+
+def preguntar_a_Gemini(text):
+    genai.configure(api_key=settings.GEMINI_API_KEY)
+
+    model = genai.GenerativeModel('gemini-2.5-flash')
+    prompt = generate_prompt(text)
+     
+    response = model.generate_content(prompt)
+    try:
+        resp = response.text.strip()
+
+        if resp.startswith('```'):
+
+            resp = resp.replace('```json', '').replace('```', '').strip()
+
+        resultado = json.loads(resp)
+        return resultado
+    except json.JSONDecodeError as e :
+        print(f"error al parcear JSON:{e}")
+        print(f"Respuesta de gemini: {response.text}")
+
+        return {
+            "nombre": None,
+            "fecha": None,
+            "monto": None,
+            "concepto": None
+
             }
-        except json.JSONDecodeError as error:
-            print("Error parseando JSON ",error)
-            return error
-    return {
-        "nombre": None,
-        "fecha": None,
-        "monto": None
-    }
+    except Exception as e:
+        print(f"Error inesperado:{e}")
+        return {
+                  "nombre": None,
+                  "fecha": None,
+                  "monto": None,
+                  "concepto": None
+                  
+              }
+
+
+
+# def from_text_to_json(text):
+#     # print(generate_prompt(text))
+#     body={
+#         "model": "gemma3",
+#         "prompt": generate_prompt(text),
+#         "stream": False
+#     }
+#     resolve = requests.post("http://localhost:11434/api/generate",json=body)
+#     ai_json=json.loads(resolve.text)
+#     response =ai_json["response"]
+#     coincide=re.search(r"```json\s*(\{\s*.*?\s*\})\s*```",response,re.DOTALL)
+
+#     if coincide:
+#         json_srt= coincide.group(1)
+#         try:
+#             data = json.loads(json_srt)
+#             print(data)
+#             return {
+#                 "concepto": data.get('concepto'),
+#                 "nombre": data.get("nombre"),
+#                 "monto": decimal.Decimal(data.get("monto"))  
+#             }
+#         except json.JSONDecodeError as error:
+#             print("Error parseando JSON ",error)
+#             return error
+#     return {
+#         "nombre": None,
+#         "fecha": None,
+#         "monto": None}

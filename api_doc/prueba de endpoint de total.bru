@@ -1,0 +1,24 @@
+meta {
+  name: prueba de endpoint de total
+  type: http
+  seq: 10
+}
+
+get {
+  url: http://localhost:8000/transactions/
+  body: none
+  auth: bearer
+}
+
+headers {
+  Authorization: Token 9210c144eb3965bc04fbe945714e0d177163d1fd
+}
+
+auth:bearer {
+  token: 
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

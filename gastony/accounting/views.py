@@ -8,13 +8,16 @@ from .serializers import OcrSerializer, TransactionSerializer
 from .utils import ocr
 import requests 
 from rest_framework import status
-from .services import from_text_to_json
+# from .services import from_text_to_json
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 from users.models import User
 from django.db.models import Sum
 
 from twilio.rest import Client
+from django.http import JsonResponse
+from .services import preguntar_a_Gemini
+
 
 
 account_sid = settings.TWILIO_ACCOUNT_SID
@@ -30,15 +33,17 @@ auth_token = settings.TWILIO_AUTH_TOKEN
 
  #clase general que hace todo 
 class TransactionViewSet(viewsets.ModelViewSet): 
+
     # configuracion del viewset
     # la base donde trabaja el viewset osea el modelo Transaction
     queryset=Transaction.objects.all()
-    # permisos  
+
+    # quien puede acceder a estos datos   
     permission_classes=[permissions.IsAuthenticated]
 
 
     serializer_class = TransactionSerializer
-
+     # definimos como se van a convertir los datos a json 
     def get_serializer_class(self):
         if self.action == 'register_from_text':
             return TransactionSerializer
@@ -52,6 +57,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
         # esto valida que sea una imagen valida 
         serializer = OcrSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        
         # llama la funcion ocr que se encarga de procesar la imagen 
         text=ocr(serializer.validated_data.get('image'))
         # condicion: si el texto de la imagen tiene 10 caracteres o menos manda un mensaje 
@@ -60,7 +66,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
                 "msg": "imagen invalida o con mala definicion"
             }, status=status.HTTP_400_BAD_REQUEST)
         # llamada a la ia con el texto extraido de la imagen 
-        resolve = from_text_to_json(text)
+        resolve = preguntar_a_Gemini(text) 
 
         # inventar usuario 
         usuario = User.objects.last()
@@ -80,20 +86,24 @@ class TransactionViewSet(viewsets.ModelViewSet):
         data={"raw": text,"transaction": TransactionSerializer(transaction).data }
         return Response(data, status=status.HTTP_200_OK)
     
-    # metodo que se encarga de analizar el texto a travez de un mensaje(otro endpoint )
-    @action(methods=['post'], detail=False, url_path='from-text', permission_classes=[permissions.AllowAny])
-    def register_from_text(self, request):
-        message_from_whatsapp = request.data.get('message')
-        result = from_text_to_json(message_from_whatsapp)
-        return Response({
-            "result": result
-        })
+    # # metodo que se encarga de analizar el texto a travez de un mensaje(otro endpoint )
+    # @action(methods=['post'], detail=False, url_path='from-text', permission_classes=[permissions.AllowAny])
+
+
+      
+    # def register_from_text(self, request):
+    #     message_from_whatsapp = request.data.get('message')
+    #     result = preguntar_a_Gemini(message_from_whatsapp)
+    #     return Response({
+    #         "result": result
+    #     })
     # metodo o endpoint que se encarga de recibir un texto y lo manda a la ia 
     @action(methods=['post'], detail=False,url_path='whatsapp', permission_classes=[])
-    def ws_hook(self, request):
-        # print(request.data.get('Body'))
-        # print(request.data)
-        resolve = from_text_to_json(request.data.get('Body')) 
+
+     # aqui llega el mensaje desde whatsApp
+    def ws_hook(self, request):        
+
+        resolve = preguntar_a_Gemini(request.data.get('Body')) 
         print(resolve)
 
         body=f"Hola ya registre tu gasto de {resolve.get('monto')} por concepto de {resolve.get('concepto')}"
@@ -101,7 +111,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
         self.send_message(numero=numero,body=body, from_=numero)
  
         # inventamos usuario 
-        usuario = User.objects.all().last
+        usuario = User.objects.all().last()
         print(usuario)
 
         # guarda los datos en la db 
@@ -110,22 +120,23 @@ class TransactionViewSet(viewsets.ModelViewSet):
             notes=resolve.get("concepto"),
             amount=resolve.get("monto")
         )
-   
+             
         data={"transaction": TransactionSerializer(transaction).data }
         return Response(data, status=status.HTTP_200_OK)
         
        
 
-    
+          #aqui se envia el mensaje 
     def send_message(self,body,numero,from_): 
-        # aqui se envia el mensaje 
+        
 
         client = Client(account_sid, auth_token)
 
         message = client.messages.create(
             body=body,
             to='whatsapp:+5491172373115',
-            from_='whatsapp:+14155238886',  # tu número con código país
+            from_='whatsapp:+14155238886',  
+            # tu número con código país
         )
 
         print(message.sid)
@@ -135,7 +146,8 @@ class TransactionViewSet(viewsets.ModelViewSet):
  # endpoint para mostrar el balance 
     @action(methods=['get'], detail=False,url_path='balance', permission_classes=[])
     def balance(self, request):
-        data = self.queryset.aggregate(
+
+        data = self.queryset.filter(user=request.user).aggregate(
             total= Sum('amount')
         )
         
