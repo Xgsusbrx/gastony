@@ -1,10 +1,7 @@
-<<<<<<< HEAD
-import { createFileRoute } from "@tanstack/react-router";
-import axios from "axios";
-=======
+
 import { apiClient } from '@/api'
 import { useEffect, useState } from "react";
->>>>>>> d15c55c0b5382e0a8177e57c4c15f8701f5269b2
+
 
 export interface TransactionResponse {
 	count: number;
@@ -23,53 +20,7 @@ export interface Result {
 	user: number;
 }
 
-<<<<<<< HEAD
-export const Route = createFileRoute("/app/home")({
-  loader: async () => {
-    const url = "http://localhost:8000";
-    const token = sessionStorage.getItem("token");
 
-    const [transactionsResp, balanceResp] = await Promise.all([
-      axios.get<TransactionResponse>(`${url}/accounting/`, {
-        headers: { Authorization: `Token ${token}` },
-      }),
-      axios.get<{ balance: number }>(`${url}/accounting/balance`, {
-        headers: { Authorization: `Token ${token}` },
-      }),
-    ]);
-
-    
-    return {
-      transactions: transactionsResp.data,
-      balance: balanceResp.data.balance,
-    };
-  },
-
-  component: RouteComponent,
-});
-function RouteComponent() {
-  const { transactions, balance } = Route.useLoaderData();
-
-  return (
-    <div>
-      Total de transacciones: {transactions.count}
-
-      <table>
-        <tbody>
-          {transactions.results.map((tran) => (
-            <tr key={tran.id}>
-              <td>{tran.id}</td>
-              <td>{tran.amount}</td>
-              <td>{tran.type}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      <h2>Total: {balance}</h2>
-    </div>
-  );
-=======
 export default function HomePage() {
   const [loding, setLoading] = useState(true);
   const [error, setError] = useState<boolean>();
@@ -148,6 +99,6 @@ export default function HomePage() {
 			)}{" "}
 		</>
 	);
->>>>>>> d15c55c0b5382e0a8177e57c4c15f8701f5269b2
+
 }
 

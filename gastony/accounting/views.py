@@ -101,10 +101,18 @@ class TransactionViewSet(viewsets.ModelViewSet):
     @action(methods=['post'], detail=False,url_path='whatsapp', permission_classes=[])
 
      # aqui llega el mensaje desde whatsApp
-    def ws_hook(self, request):        
+    def ws_hook(self, request):  
 
-        resolve = preguntar_a_Gemini(request.data.get('Body')) 
-        print(resolve)
+        media_url = request.data.get('image')
+
+        if media_url:
+            text = ocr(media_url)  
+            print(text)
+        else:
+            text = request.data.get('Body')        
+
+        resolve = preguntar_a_Gemini(text) 
+        # print(resolve)
 
         body=f"Hola ya registre tu gasto de {resolve.get('monto')} por concepto de {resolve.get('concepto')}"
         numero=request.data.get('From') 
