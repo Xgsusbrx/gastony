@@ -1,0 +1,153 @@
+#!/bin/bash
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+BACKEND_DIR="$SCRIPT_DIR/gastony"
+FRONTEND_DIR="$SCRIPT_DIR/frontend"
+VENV_DIR="$BACKEND_DIR/venv"
+PYTHON_CMD="python3.12"
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+log_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
+
+log_success() {
+    echo -e "${GREEN}[OK]${NC} $1"
+}
+
+log_warning() {
+    echo -e "${YELLOW}[WARN]${NC} $1"
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+cleanup() {
+    log_info "Deteniendo servicios..."
+    if [ -n "$BACKEND_PID" ]; then
+        kill $BACKEND_PID 2>/dev/null || true
+    fi
+    if [ -n "$FRONTEND_PID" ]; then
+        kill $FRONTEND_PID 2>/dev/null || true
+    fi
+    log_success "Servicios detenidos"
+    exit 0
+}
+
+trap cleanup SIGINT SIGTERM
+
+setup_backend() {
+    log_info "Configurando backend..."
+    
+    cd "$BACKEND_DIR"
+    
+    if [ -d "$VENV_DIR" ]; then
+        VENV_PYTHON_VERSION=$("$VENV_DIR/bin/python" --version 2>&1 | cut -d' ' -f2 | cut -d'.' -f1,2)
+        REQUIRED_PY_SHORT=$(echo "$PYTHON_VERSION" | cut -d'.' -f1,2)
+        if [ "$VENV_PYTHON_VERSION" != "$REQUIRED_PY_SHORT" ]; then
+            log_warning "El entorno virtual usa Python $VENV_PYTHON_VERSION pero se requiere $REQUIRED_PY_SHORT. Recreando..."
+            rm -rf "$VENV_DIR"
+        fi
+    fi
+    
+    if [ ! -d "$VENV_DIR" ]; then
+        log_warning "Entorno virtual no encontrado. Creando..."
+        $PYTHON_CMD -m venv "$VENV_DIR"
+        log_success "Entorno virtual creado"
+    fi
+    
+    source "$VENV_DIR/bin/activate"
+    log_success "Entorno virtual activado"
+    
+    if [ -f "requirement.txt" ]; then
+        log_info "Verificando dependencias de Python..."
+        pip install -q -r requirement.txt
+        log_success "Dependencias instaladas"
+    fi
+    
+    log_info "Verificando migraciones..."
+    python manage.py migrate --check 2>/dev/null || {
+        log_warning "Hay migraciones pendientes. Ejecutando migrate..."
+        python manage.py migrate
+        log_success "Migraciones aplicadas"
+    }
+    
+    if [ ! -f ".env" ]; then
+        if [ -f ".env.example" ]; then
+            log_warning "Archivo .env no encontrado. Creando desde .env.example..."
+            cp .env.example .env
+            log_success "Archivo .env creado (revisa las configuraciones)"
+        else
+            log_error "Archivo .env no encontrado y no existe .env.example"
+            exit 1
+        fi
+    fi
+}
+
+start_backend() {
+    log_info "Iniciando servidor Django en http://localhost:8000..."
+    python manage.py runserver &
+    BACKEND_PID=$!
+    log_success "Backend iniciado (PID: $BACKEND_PID)"
+}
+
+setup_frontend() {
+    log_info "Configurando frontend..."
+    
+    cd "$FRONTEND_DIR"
+    
+    if [ ! -d "node_modules" ]; then
+        log_warning "node_modules no encontrado. Instalando dependencias..."
+        npm install
+        log_success "Dependencias de Node instaladas"
+    fi
+}
+
+start_frontend() {
+    log_info "Iniciando servidor de desarrollo frontend en http://localhost:3000..."
+    npm run dev &
+    FRONTEND_PID=$!
+    log_success "Frontend iniciado (PID: $FRONTEND_PID)"
+}
+
+main() {
+    echo -e "${GREEN}=== Gastony Development Server ===${NC}\n"
+    
+    if ! command -v $PYTHON_CMD &> /dev/null; then
+        log_error "$PYTHON_CMD no está instalado"
+        log_error "Por favor instala Python 3.12 con: brew install python@3.12"
+        exit 1
+    fi
+    
+    PYTHON_VERSION=$($PYTHON_CMD --version | cut -d' ' -f2)
+    log_info "Python detectado: $PYTHON_VERSION"
+    
+    if ! command -v npm &> /dev/null; then
+        log_error "npm no está instalado"
+        exit 1
+    fi
+    
+    setup_backend
+    start_backend
+    
+    cd "$SCRIPT_DIR"
+    setup_frontend
+    start_frontend
+    
+    echo -e "\n${GREEN}=== Servicios en ejecución ===${NC}"
+    echo -e "Backend:  ${BLUE}http://localhost:8000${NC}"
+    echo -e "Frontend: ${BLUE}http://localhost:3000${NC}"
+    echo -e "\nPresiona ${YELLOW}Ctrl+C${NC} para detener todos los servicios\n"
+    
+    wait
+}
+
+main "$@"
