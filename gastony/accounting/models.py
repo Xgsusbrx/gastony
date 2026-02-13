@@ -44,7 +44,7 @@ class Transaction(models.Model):
     amount=models.DecimalField(null=True,decimal_places=2,max_digits=100,blank=True)
     notes=models.TextField(null=True, blank=True)
     # date=models.DateTimeField(null=False)
-    currency=models.CharField(null=True,blank=True, choices=CurrenciesChoices)
-    type=models.CharField(null=False, choices=TransactionType,default=TransactionType.IN)
+    currency=models.CharField(null=True,blank=True, choices=CurrenciesChoices, max_length=3)
+    type=models.CharField(null=False, choices=TransactionType,default=TransactionType.IN, max_length=3)
 
 
