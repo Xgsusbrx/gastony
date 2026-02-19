@@ -105,27 +105,27 @@ class TransactionViewSet(viewsets.ModelViewSet):
 
      # aqui llega el mensaje desde whatsApp
     def ws_hook(self, request):  
+        print(request.data)
 
         media_url = request.data.get('MediaUrl0')
-        # print (media_url)
 
-        # if media_url:
-        #     try:
-                # Descarga la imagen de twilio
-        response = requests.get(media_url, auth=HTTPBasicAuth(settings.TWILIO_ACCOUNT_SID,
+        if media_url:  
+
+                # Descarga la imagen de twilio en bytes 
+            response = requests.get(media_url, auth=HTTPBasicAuth(settings.TWILIO_ACCOUNT_SID,
             settings.TWILIO_AUTH_TOKEN))
-        
-        if response.status_code == 200:
-            image_file = io.BytesIO(response.content)
+            if response.status_code == 200:
+                   # convierte los bytes en un archivo de imagen que se guarda temporal en 
+                image_file = io.BytesIO(response.content)
             
             text = ocr(image_file)
-            # print(text)
-            
 
-            
-            
+        else:
+            text = request.data.get('Body')   
+            print(text)           
                   
-        # text = request.data.get('Body')  
+                  
+          
         resolve = preguntar_a_Gemini(text) 
         print(resolve)
 
