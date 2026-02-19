@@ -11,7 +11,7 @@ def generate_prompt(text):
     No incluyas texto adicional.
     No uses markdown ni bloques de código.
     El JSON debe tener EXACTAMENTE esta estructura:
-    {{"nombre": null, "fecha": null, "monto": null, "concepto": null}}
+    {{"nombre": null, "fecha": null, "monto": null, "concepto": null, "transType": null}}
     Reglas:
     - Extrae solo datos presentes en el texto.
     - No inventes información.
@@ -19,6 +19,7 @@ def generate_prompt(text):
     - Si el texto contiene "ayer", devuelve la fecha correspondiente a un día antes de hoy.
     - El monto debe ser un número decimal usando punto.
     - Elimina símbolos de moneda y separadores de miles.
+    - Identifica el tipo de trasaccion, si es gasto colocalo en negativo, devuelve in si es ingreso y out
     Texto OCR:
     {text}
     """
@@ -50,7 +51,8 @@ def preguntar_a_Gemini(text):
             "nombre": None,
             "fecha": None,
             "monto": None,
-            "concepto": None
+            "concepto": None,
+            "transType": None,
 
             }
     except Exception as e:
@@ -59,7 +61,8 @@ def preguntar_a_Gemini(text):
                   "nombre": None,
                   "fecha": None,
                   "monto": None,
-                  "concepto": None
+                  "concepto": None,
+                  "transType": None
                   
               }
 
