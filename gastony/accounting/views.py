@@ -17,6 +17,8 @@ from django.db.models import Sum
 from twilio.rest import Client
 from django.http import JsonResponse
 from .services import preguntar_a_Gemini
+from requests.auth import HTTPBasicAuth
+import io
 
 
 
@@ -49,10 +51,10 @@ class TransactionViewSet(viewsets.ModelViewSet):
             return TransactionSerializer
         return super().get_serializer_class()
     
-    # esto crea el endpoint 
+    # esto crea el endpoint  
     @action(methods=['post'], detail=False, url_path='image-to-text', permission_classes=[permissions.AllowAny])
 
-    # esto es un endpoint
+    # funcion que procesa la imagen 
     def image_to_text(self, request):
         # esto valida que sea una imagen valida 
         serializer = OcrSerializer(data=request.data)
@@ -84,6 +86,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
         )
    
         data={"raw": text,"transaction": TransactionSerializer(transaction).data }
+
         return Response(data, status=status.HTTP_200_OK)
     
     # # metodo que se encarga de analizar el texto a travez de un mensaje(otro endpoint )
@@ -103,24 +106,36 @@ class TransactionViewSet(viewsets.ModelViewSet):
      # aqui llega el mensaje desde whatsApp
     def ws_hook(self, request):  
 
-        media_url = request.data.get('image')
+        media_url = request.data.get('MediaUrl0')
+        # print (media_url)
 
-        if media_url:
-            text = ocr(media_url)  
-            print(text)
-        else:
-            text = request.data.get('Body')        
+        # if media_url:
+        #     try:
+                # Descarga la imagen de twilio
+        response = requests.get(media_url, auth=HTTPBasicAuth(settings.TWILIO_ACCOUNT_SID,
+            settings.TWILIO_AUTH_TOKEN))
+        
+        if response.status_code == 200:
+            image_file = io.BytesIO(response.content)
+            
+            text = ocr(image_file)
+            # print(text)
+            
 
+            
+            
+                  
+        # text = request.data.get('Body')  
         resolve = preguntar_a_Gemini(text) 
-        # print(resolve)
+        print(resolve)
 
         body=f"Hola ya registre tu gasto de {resolve.get('monto')} por concepto de {resolve.get('concepto')}"
         numero=request.data.get('From') 
         self.send_message(numero=numero,body=body, from_=numero)
- 
+       
         # inventamos usuario 
         usuario = User.objects.all().last()
-        print(usuario)
+        # print(usuario)
 
         # guarda los datos en la db 
         transaction = Transaction.objects.create(
@@ -130,6 +145,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
         )
              
         data={"transaction": TransactionSerializer(transaction).data }
+        
         return Response(data, status=status.HTTP_200_OK)
         
        
@@ -147,9 +163,9 @@ class TransactionViewSet(viewsets.ModelViewSet):
             # tu número con código país
         )
 
-        print(message.sid)
-        print(body)
-        print(numero)
+        # print(message.sid)
+        # print(body)
+        # print(numero)
 
  # endpoint para mostrar el balance 
     @action(methods=['get'], detail=False,url_path='balance', permission_classes=[])
