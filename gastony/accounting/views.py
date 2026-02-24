@@ -38,7 +38,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
 
     # configuracion del viewset
     # la base donde trabaja el viewset osea el modelo Transaction
-    queryset=Transaction.objects.all()
+    queryset=Transaction.objects.all().order_by('-id')
 
     # quien puede acceder a estos datos   
     permission_classes=[permissions.IsAuthenticated]

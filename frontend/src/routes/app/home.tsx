@@ -8,6 +8,10 @@ export interface TransactionResponse {
 	results: Result[];
 }
 
+export interface BalanceResp {
+	balance:number;
+}
+
 export interface Result {
 	id: number;
 	amount: string;
@@ -37,7 +41,7 @@ function TypeBadge({ type }: { type: string }) {
 	);
 }
 
-function formatAmount(amount: string) {
+function formatAmount(amount: number) {
 	const num = parseFloat(amount);
 	if (isNaN(num)) return amount;
 	return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(num);
@@ -48,6 +52,7 @@ export default function HomePage() {
 	const [error, setError] = useState<boolean>(false);
 	const [errorMessage, setErrorMessage] = useState<string>("");
 	const [data, setData] = useState<TransactionResponse | null>(null);
+	const [balance, setBalance] = useState(0)
 
 	useEffect(() => {
 		const apiCall = async () => {
@@ -70,6 +75,26 @@ export default function HomePage() {
 		apiCall();
 	}, []);
 
+    useEffect(() => {
+		const apiCall = async () => {
+			const token = window.sessionStorage.getItem("token");
+			try {
+				setLoading(true);
+				const resp = await apiClient.get<BalanceResp>(
+					`/accounting/balance`,
+					{ headers: { Authorization: `Token ${token}` } },
+				);
+				setBalance(resp.data.balance);
+			} catch (err) {
+				console.error("❌ Error:", err);
+				setErrorMessage("Algo salió mal al cargar las transacciones.");
+				setError(true);
+			} finally {
+				setLoading(false);
+			}
+		};
+		apiCall();
+	}, []);
 	if (error) {
 		return (
 			<div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
@@ -123,10 +148,10 @@ export default function HomePage() {
 					</div>
 					<div className="bg-slate-900 border border-indigo-500/20 rounded-2xl px-6 py-5">
 						<p className="text-xs font-semibold tracking-widest uppercase text-slate-500 mb-2">
-							Mostrando
+							Balance 
 						</p>
 						<p className="text-3xl font-bold text-indigo-400 tracking-tight">
-							{data?.results?.length ?? 0}
+							{balance}
 						</p>
 					</div>
 				</div>
